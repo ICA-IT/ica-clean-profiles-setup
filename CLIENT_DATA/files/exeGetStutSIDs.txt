@@ -1,0 +1,1 @@
+& .\GetSutdentSIDs.ps1

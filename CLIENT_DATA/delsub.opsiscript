@@ -1,0 +1,29 @@
+; Copyright (c) uib gmbh (www.uib.de)
+; This sourcecode is owned by uib gmbh
+; and published under the Terms of the General Public License.
+; credits: http://www.opsi.org/en/credits/
+
+include_append "%ScriptPath%\check_inno_exitcode.opsiscript"
+
+DefVar $found$
+DefVar $UninstallProgram$
+
+Set $found$     = "false"
+Set $MsiId$     = ''
+
+Message "Uninstalling " + $ProductId$ + " ..."
+
+
+if (not($InstallDir$ = '')) and (not($InstallDir$ = "not used"))
+   comment "Clean out scratch files"
+   Files_uninstall
+endif
+
+;-----------------------------------------------------
+
+[Files_uninstall]
+; Recursively delete the installation directory:
+;
+ del -sf "$InstallDir$\"
+ 
+;-----------------------------------------------------

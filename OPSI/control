@@ -1,0 +1,92 @@
+[Package]
+version: 1
+depends: 
+incremental: False
+
+[Product]
+type: localboot
+id: ica-clean-profiles-setup
+name: ica-clean-profiles-setup
+description: Install the setup files for cleaning student account profiles.
+advice: The powershell script will be generated using the cleanprofiles program.
+
+
+
+version: 1.0
+priority: 0
+licenseRequired: False
+productClasses: 
+setupScript: setup.opsiscript
+uninstallScript: uninstall.opsiscript
+updateScript: 
+alwaysScript: 
+onceScript: 
+customScript: 
+userLoginScript: 
+
+[ProductProperty]
+type: unicode
+name: ou_path
+multivalue: False
+editable: True
+description: The Active Directory Organzational Unit containing the Security Group.
+values: [""]
+default: ["OU=students", "OU=ICA users", "DC=campus", "DC=islandchristianacademy", "DC=com"]
+
+[ProductProperty]
+type: unicode
+name: group_name
+multivalue: False
+editable: True
+description: Name of the Active Directory Security Group containing all of the domain accounts to be cleaned.
+values: [""]
+default: ["ICA students"]
+
+[ProductProperty]
+type: unicode
+name: password_share
+multivalue: False
+editable: True
+description: The password used to access the network share.
+values: [""]
+default: [""]
+
+[ProductProperty]
+type: unicode
+name: file_name
+multivalue: False
+editable: True
+description: Name of the script file saved on the network share.
+values: [""]
+default: ["CleanStudentProfiles.ps1"]
+
+[ProductProperty]
+type: unicode
+name: share_username
+multivalue: False
+editable: True
+description: Username to access the network share.
+values: [""]
+default: [""]
+
+[ProductProperty]
+type: unicode
+name: share_name
+multivalue: False
+editable: True
+description: Network share used to store profile cleaning script
+values: [""]
+default: ["\\\\server\\opsi_images"]
+
+[Changelog]
+ica-clean-profiles-setup (1.1-2.corr2corr) stable; urgency=low
+
+Project copied from: ica-clean-profiles_1.1-2.corr2corr.opsi
+
+ -- John Kuras <jkuras@islandchristianacademy.com>  Thu, 20 Aug 2020 04:04:09 +0000
+
+ica-clean-profiles (1.0-1) stable; urgency=low
+
+Project created with opsi Package Builder 8.4.4
+
+ -- John Kuras <jkuras@islandchristianacademy.com>  Mon, 17 Aug 2020 10:48:01 +0000

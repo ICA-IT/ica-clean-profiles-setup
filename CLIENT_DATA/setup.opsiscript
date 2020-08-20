@@ -1,0 +1,191 @@
+; ----------------------------------------------------------------
+; Copyright (c) uib gmbh (www.uib.de)
+; This sourcecode is owned by uib
+; and published under the Terms of the General Public License.
+; credits: http://www.opsi.org/en/credits/
+; ----------------------------------------------------------------
+
+;****************************************
+; SETUPTYPE      other
+;****************************************
+; PRODUCTID      ica-clean-profiles-setup
+; SETUPFILE      c:\temp\
+;****************************************
+; LICENSE        false     
+; PRODUCTDESC    Delete old ICA Student profile data
+
+; PRODUCTNAME    ica-clean-profiles-setup
+; PRODUCTSIZE    20 MB
+; PRODUCTVER     1.0
+;****************************************
+; SETUPSCRIPT    setup.opsiscript
+; UNINSSCRIPT    uninstall.opsiscript
+;****************************************
+; MSIID          
+; USE-MST        
+; INSTALLDIR     c:\temp\
+;****************************************
+; TIMESTAMP      8/20/2020 0:31:57
+;****************************************
+
+[Actions]
+requiredWinstVersion >= "4.11.4.3"
+ScriptErrorMessages = false
+
+DefVar $SetupType$
+DefVar $ProductId$ 
+DefVar $Setupfile$ 
+DefVar $InstallDir$
+DefVar $MinimumSpace$
+DefVar $ExitCode$
+DefVar $ErrorMsg$
+DefVar $LicenseRequired$
+DefVar $LicenseKey$
+DefVar $LicensePool$
+DefVar $MsiId$
+DefVar $NsisInstallBatch$
+DefVar $LogDir$
+DefVar $WinVer$
+DefVar $policy$
+DefVar $PROP_sharename$
+DefVar $PROP_shareUN$
+DefVar $PROP_sharePW$
+DefVar $PROP_scriptname$
+DefVar $PROP_GroupName$
+DefVar $PROP_orgunit$
+DefVar $Pipe$
+
+DefstringList $policylist$
+
+Set $LogDir$ = "%opsiLogDir%"
+Set $WinVer$ = GetMsVersionInfo
+Set $Pipe$ = "|"
+
+include_append "%ScriptPath%\check_inno_exitcode.opsiscript"
+
+set $PROP_sharename$ = GetProductProperty("share_name","\\server\opsi_workbench\dropbox")
+set $PROP_shareUN$ = GetProductProperty("share_username","dad")
+set $PROP_sharePW$ = GetProductProperty("password_share","password")
+set $PROP_scriptname$ = GetProductProperty("file_name","CleanStudentProfiles.ps1")
+set $PROP_GroupName$ = GetProductProperty("group_name","ICA students")
+set $PROP_orgunit$ = GetProductProperty("ou_path","OU=students, OU=ICA users, DC=campus, DC=islandchristianacademy, DC=com")
+
+; ----------------------------------------------------------------
+Set $SetupType$       = "inno"
+; ----------------------------------------------------------------
+
+Set $ProductId$       = "ica-clean-profiles-setup"
+Set $Setupfile$       = "clean_profiles.exe"
+Set $InstallDir$      = "c:\temp"
+Set $LicenseRequired$ = "false"
+Set $LicensePool$     = "p_" + $ProductId$
+Set $MsiId$           = ""
+Set $MinimumSpace$    = "20 MB"
+; ----------------------------------------------------------------
+; ----------------------------------------------------------------
+
+   comment "Show product picture"
+   ShowBitmap "%ScriptPath%\" + $ProductId$ + ".png" $ProductId$
+
+if CompareDotSeparatedNumbers($WinVer$,"<","10.0")
+   LogError $ProductId$ + " requires Windows 10 or later. This system is reporting version " + $WinVer$ 
+   Message "Error: Can not install " + $ProductId$ + " on Windows " + $WinVer$ + " systems... "
+   isFatalError "Wrong Windows version"
+   ; Stop process and set installation status to failed
+endif
+
+if not(HasMinimumSpace ("%SystemDrive%", $MinimumSpace$))
+   LogError "Not enough space on %SystemDrive%, " + $MinimumSpace$ + " on drive %SystemDrive% needed for " + $ProductId$
+   isFatalError "No Space"
+   ; Stop process and set installation status to failed
+else
+
+   if FileExists("%ScriptPath%\delsub.opsiscript")
+      comment "Start uninstall sub section"
+      Sub "%ScriptPath%\delsub.opsiscript"
+   endif
+   
+   Message "Installing " + $ProductId$ + " ..."
+     
+   comment "Start setup program"
+   ChangeDirectory "%SCRIPTPATH%"
+   ;----------------------------------------------
+
+   comment "Create the scratch folder"
+   Files_install
+   
+   
+   comment "Display the current powershell execution policy"
+   DOSInAnIcon_catscript get-executionpolicy
+   
+   comment "Set the powershell execution policy to permit remote signed scripts"
+   DOSInAnIcon_catscript set-executionpolicy -Force RemoteSigned
+   
+   comment "Display the new powershell execution policy"
+   DOSInAnIcon_catscript get-executionpolicy
+
+   comment "Create the powershell script"
+; list the students
+   DOSInAnIcon_catscript cd $InstallDir$
+   
+   DOSInAnIcon_catscript2 $InstallDir$\temp1.txt dsget group "CN=$PROP_GroupName$,$PROP_orgunit$" -members
+   DOSInAnIcon_catscript2 $InstallDir$\temp2.txt out-file "StudentGroup.txt" -encoding ascii  
+   DOSInAnIcon_MergeFiles $InstallDir$\temp1.txt $InstallDir$\temp2.txt $InstallDir$\$PROP_scriptname$
+; get the SIDs   
+   DOSInAnIcon_catscript $InstallDir$\clean_profiles.exe first
+   DOSInAnIcon_ApendFile exeGetStutSIDs.txt $InstallDir$\$PROP_scriptname$
+; convert the output file to 8 bit ascii 
+   DOSInAnIcon_catscript2 $InstallDir$\temp3.txt type studentSIDs.txt
+   DOSInAnIcon_catscript2 $InstallDir$\temp4.txt out-file "StudentSIDSa.txt" -encoding ascii 
+   DOSInAnIcon_MergeFiles $InstallDir$\temp3.txt $InstallDir$\temp4.txt $InstallDir$\$PROP_scriptname$
+   DOSInAnIcon_catscript del studentSIDs.txt
+   DOSInAnIcon_catscript copy studentSIDsa.txt studentSIDs.txt
+   DOSInAnIcon_catscript del studentSIDsa.txt
+; create the final script
+   DOSInAnIcon_catscript $InstallDir$\clean_profiles.exe second
+; save the script to the network share
+   DOSInAnIcon_catscript net use v:  $PROP_sharename$ $PROP_sharePW$ /persistent:no /user:$PROP_shareUN$ 
+   DOSInAnIcon_catscript copy $InstallDir$\$PROP_scriptname$ v:\$PROP_scriptname$
+   DOSInAnIcon_catscript net use v: /delete
+   
+   if (not($InstallDir$ = '')) and (not($InstallDir$ = "not used"))
+		comment "Clean out scratch files"
+;		Files_uninstall2
+   endif
+	
+   ;----------------------------------------------
+endif
+
+
+; ----------------------------------------------------------------
+; install section
+; ----------------------------------------------------------------
+[DOSInAnIcon_catscript]
+echo %1 %2 %3 %4 %5 %6 %7 %8 %9 >> $InstallDir$\$PROP_scriptname$
+
+[DOSInAnIcon_catscript2]
+echo %2 %3 %4 %5 %6 %7 %8 %9 >> %1
+
+[DOSInAnIcon_MergeFiles]
+set /p var1=<%1
+set /p var2=<$InstallDir$\Pipe.txt
+set /p var3=<%2
+echo %var1% %var2% %var3% >> %3
+
+[DOSInAnIcon_ApendFile]
+type $InstallDir$\%1 >> %2
+
+[Files_install]
+; Recursively copy files into the installation directory:
+;
+copy -cs "%scriptpath%\files\*.*" $InstallDir$
+
+[Files_uninstall2]
+; Recursively delete the installation directory:
+;
+ del -sf "$InstallDir$\"
+
+; ----------------------------------------------------------------
+; ----------------------------------------------------------------
+; ----------------------------------------------------------------
+
