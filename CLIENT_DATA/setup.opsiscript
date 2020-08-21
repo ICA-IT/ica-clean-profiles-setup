@@ -53,13 +53,14 @@ DefVar $PROP_sharePW$
 DefVar $PROP_scriptname$
 DefVar $PROP_GroupName$
 DefVar $PROP_orgunit$
-DefVar $Pipe$
+DefVar $CreateScript$
+DefVar $UN_arg$
 
 DefstringList $policylist$
 
 Set $LogDir$ = "%opsiLogDir%"
 Set $WinVer$ = GetMsVersionInfo
-Set $Pipe$ = "|"
+set $PROP_shareUN$ = ""
 
 include_append "%ScriptPath%\check_inno_exitcode.opsiscript"
 
@@ -69,6 +70,9 @@ set $PROP_sharePW$ = GetProductProperty("password_share","password")
 set $PROP_scriptname$ = GetProductProperty("file_name","CleanStudentProfiles.ps1")
 set $PROP_GroupName$ = GetProductProperty("group_name","ICA students")
 set $PROP_orgunit$ = GetProductProperty("ou_path","OU=students, OU=ICA users, DC=campus, DC=islandchristianacademy, DC=com")
+; NOTE: PROP_orgunit is hard coded to "OU=students, OU=ICA users, DC=campus, DC=islandchristianacademy, DC=com" due to problems with
+; comma separation of opsi property values
+;set $PROP_orgunit$ = "OU=students, OU=ICA users, DC=campus, DC=islandchristianacademy, DC=com"
 
 ; ----------------------------------------------------------------
 Set $SetupType$       = "inno"
@@ -77,6 +81,7 @@ Set $SetupType$       = "inno"
 Set $ProductId$       = "ica-clean-profiles-setup"
 Set $Setupfile$       = "clean_profiles.exe"
 Set $InstallDir$      = "c:\temp"
+Set $CreateScript$    = "CreateCleanStudentProfiles.ps1"
 Set $LicenseRequired$ = "false"
 Set $LicensePool$     = "p_" + $ProductId$
 Set $MsiId$           = ""
@@ -114,39 +119,49 @@ else
    comment "Create the scratch folder"
    Files_install
    
+; prepare args ============================================================
+; /user
+	if ( $PROP_shareUN$ = "none" or $PROP_shareUN$ = "" )
+		Set $UN_arg$	= ""
+	else
+		Set $UN_arg$	= "/user:" + $PROP_shareUN$
+	endif
    
-   comment "Display the current powershell execution policy"
-   DOSInAnIcon_catscript get-executionpolicy
    
    comment "Set the powershell execution policy to permit remote signed scripts"
-   DOSInAnIcon_catscript set-executionpolicy -Force RemoteSigned
+   shellCall('powershell.exe set-executionpolicy RemoteSigned')
+   Sub_check_exitcode
    
-   comment "Display the new powershell execution policy"
-   DOSInAnIcon_catscript get-executionpolicy
-
    comment "Create the powershell script"
+; Display the current powershell execution policy   
+   DOSInAnIcon_catscript get-executionpolicy
 ; list the students
    DOSInAnIcon_catscript cd $InstallDir$
    
    DOSInAnIcon_catscript2 $InstallDir$\temp1.txt dsget group "CN=$PROP_GroupName$,$PROP_orgunit$" -members
    DOSInAnIcon_catscript2 $InstallDir$\temp2.txt out-file "StudentGroup.txt" -encoding ascii  
-   DOSInAnIcon_MergeFiles $InstallDir$\temp1.txt $InstallDir$\temp2.txt $InstallDir$\$PROP_scriptname$
+   DOSInAnIcon_MergeFiles $InstallDir$\temp1.txt $InstallDir$\temp2.txt $InstallDir$\$CreateScript$
 ; get the SIDs   
    DOSInAnIcon_catscript $InstallDir$\clean_profiles.exe first
-   DOSInAnIcon_ApendFile exeGetStutSIDs.txt $InstallDir$\$PROP_scriptname$
+   DOSInAnIcon_ApendFile exeGetStutSIDs.txt $InstallDir$\$CreateScript$
 ; convert the output file to 8 bit ascii 
    DOSInAnIcon_catscript2 $InstallDir$\temp3.txt type studentSIDs.txt
    DOSInAnIcon_catscript2 $InstallDir$\temp4.txt out-file "StudentSIDSa.txt" -encoding ascii 
-   DOSInAnIcon_MergeFiles $InstallDir$\temp3.txt $InstallDir$\temp4.txt $InstallDir$\$PROP_scriptname$
+   DOSInAnIcon_MergeFiles $InstallDir$\temp3.txt $InstallDir$\temp4.txt $InstallDir$\$CreateScript$
    DOSInAnIcon_catscript del studentSIDs.txt
    DOSInAnIcon_catscript copy studentSIDsa.txt studentSIDs.txt
    DOSInAnIcon_catscript del studentSIDsa.txt
 ; create the final script
    DOSInAnIcon_catscript $InstallDir$\clean_profiles.exe second
 ; save the script to the network share
-   DOSInAnIcon_catscript net use v:  $PROP_sharename$ $PROP_sharePW$ /persistent:no /user:$PROP_shareUN$ 
-   DOSInAnIcon_catscript copy $InstallDir$\$PROP_scriptname$ v:\$PROP_scriptname$
+   DOSInAnIcon_catscript net use v:  $PROP_sharename$ $PROP_sharePW$ /persistent:no $UN_arg$ 
+   DOSInAnIcon_catscript copy $InstallDir$\CleanStudentProfiles.ps1 v:\$PROP_scriptname$
    DOSInAnIcon_catscript net use v: /delete
+; pause at the end (requires user interaction)
+   DOSInAnIcon_catscript pause
+   
+   comment "Create shortcuts"
+   LinkFolder_install
    
    if (not($InstallDir$ = '')) and (not($InstallDir$ = "not used"))
 		comment "Clean out scratch files"
@@ -161,7 +176,7 @@ endif
 ; install section
 ; ----------------------------------------------------------------
 [DOSInAnIcon_catscript]
-echo %1 %2 %3 %4 %5 %6 %7 %8 %9 >> $InstallDir$\$PROP_scriptname$
+echo %1 %2 %3 %4 %5 %6 %7 %8 %9 >> $InstallDir$\$CreateScript$
 
 [DOSInAnIcon_catscript2]
 echo %2 %3 %4 %5 %6 %7 %8 %9 >> %1
@@ -184,6 +199,41 @@ copy -cs "%scriptpath%\files\*.*" $InstallDir$
 ; Recursively delete the installation directory:
 ;
  del -sf "$InstallDir$\"
+
+[LinkFolder_install]
+; Deleting the folder for AllUsers startmenu:
+;
+ set_basefolder common_programs
+ delete_subfolder $ProductId$
+;
+; Creating an shortcut in AllUsers startmenu:
+;
+ set_basefolder common_programs
+ set_subfolder $ProductId$
+;
+ set_link
+ 	name: "Create Clean Student Profiles Script"
+ 	target: powershell.exe 
+ 	parameters: -ExecutionPolicy Bypass -File "$InstallDir$\$CreateScript$"
+ 	working_dir: $InstallDir$
+; 	icon_file: $InstallDir$\passwin.exe
+; 	icon_index: 1
+ end_link
+;
+; Example of creating an shortcut to the installed exe on AllUsers desktop:
+;
+ set_basefolder common_desktopdirectory
+ set_subfolder ""
+;
+ set_link
+ 	name: "Create Clean Student Profiles Script"
+ 	target: powershell.exe 
+ 	parameters: -ExecutionPolicy Bypass -File "$InstallDir$\$CreateScript$"
+ 	working_dir: $InstallDir$
+;	icon_file: $InstallDir$\passwin.exe
+; 	icon_index: 2
+ end_link
+
 
 ; ----------------------------------------------------------------
 ; ----------------------------------------------------------------

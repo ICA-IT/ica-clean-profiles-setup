@@ -27,8 +27,8 @@ Set $SetupType$ = "inno"
 ; ----------------------------------------------------------------; ----------------------------------------------------------------
 ; - Please check the following values                             -
 ; ----------------------------------------------------------------
-Set $ProductId$       = "ica-clean-profiles"
-Set $InstallDir$      = "c:\temp\"
+Set $ProductId$       = "ica-clean-profiles-setup"
+Set $InstallDir$      = "c:\temp"
 Set $LicenseRequired$ = "false"
 Set $LicensePool$     = "p_" + $ProductId$
 ; ----------------------------------------------------------------

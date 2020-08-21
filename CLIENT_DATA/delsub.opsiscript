@@ -19,11 +19,27 @@ if (not($InstallDir$ = '')) and (not($InstallDir$ = "not used"))
    Files_uninstall
 endif
 
+comment "Delete shortcuts"
+LinkFolder_uninstall
+
 ;-----------------------------------------------------
 
 [Files_uninstall]
 ; Recursively delete the installation directory:
 ;
  del -sf "$InstallDir$\"
+ 
+[LinkFolder_uninstall]
+; Delete the folder from AllUsers startmenu:
+;
+ set_basefolder common_programs
+ delete_subfolder $ProductId$
+;
+; Delete the shortcut from AllUsers desktop:
+;
+ set_basefolder common_desktopdirectory
+ set_subfolder ""
+ delete_element Create Clean Student Profiles Script
+ 
  
 ;-----------------------------------------------------

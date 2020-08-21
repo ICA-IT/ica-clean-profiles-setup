@@ -1,7 +1,6 @@
 [Package]
 version: 1
 depends: 
-incremental: False
 
 [Product]
 type: localboot
@@ -9,9 +8,6 @@ id: ica-clean-profiles-setup
 name: ica-clean-profiles-setup
 description: Install the setup files for cleaning student account profiles.
 advice: The powershell script will be generated using the cleanprofiles program.
-
-
-
 version: 1.0
 priority: 0
 licenseRequired: False
@@ -30,8 +26,8 @@ name: ou_path
 multivalue: False
 editable: True
 description: The Active Directory Organzational Unit containing the Security Group.
-values: [""]
-default: ["OU=students", "OU=ICA users", "DC=campus", "DC=islandchristianacademy", "DC=com"]
+values: ["OU=students, OU=ICA users, DC=campus, DC=islandchristianacademy, DC=com"]
+default: ["OU=students, OU=ICA users, DC=campus, DC=islandchristianacademy, DC=com"]
 
 [ProductProperty]
 type: unicode
@@ -39,7 +35,7 @@ name: group_name
 multivalue: False
 editable: True
 description: Name of the Active Directory Security Group containing all of the domain accounts to be cleaned.
-values: [""]
+values: ["ICA students"]
 default: ["ICA students"]
 
 [ProductProperty]
@@ -57,7 +53,7 @@ name: file_name
 multivalue: False
 editable: True
 description: Name of the script file saved on the network share.
-values: [""]
+values: ["CleanStudentProfiles.ps1"]
 default: ["CleanStudentProfiles.ps1"]
 
 [ProductProperty]
@@ -75,7 +71,7 @@ name: share_name
 multivalue: False
 editable: True
 description: Network share used to store profile cleaning script
-values: [""]
+values: ["\\\\server\\opsi_images"]
 default: ["\\\\server\\opsi_images"]
 
 [Changelog]
