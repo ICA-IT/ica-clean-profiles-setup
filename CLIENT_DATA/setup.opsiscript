@@ -55,6 +55,8 @@ DefVar $PROP_GroupName$
 DefVar $PROP_orgunit$
 DefVar $CreateScript$
 DefVar $UN_arg$
+DefVar $WinstRegKey$
+DefVar $FirstRunFlag$
 
 DefstringList $policylist$
 
@@ -104,6 +106,18 @@ if not(HasMinimumSpace ("%SystemDrive%", $MinimumSpace$))
    isFatalError "No Space"
    ; Stop process and set installation status to failed
 else
+
+   comment "Handle initial execution policy"
+   Set $WinstRegKey$ = "HKLM\SOFTWARE\ICA\opsi-produtcs\"+$ProductId$
+   Set $FirstRunFlag$ = GetRegistryStringValue32("["+$WinstRegKey$+"] "+"FirstRunFlag")
+   if not ($FirstRunFlag$ = "1")
+	  Set $FirstRunFlag$ = "1"
+	  Registry_SaveFirstRunFlag /32bit
+      comment "Save the current powershell execution policy"
+      set $policylist$ = shellCall('powershell.exe get-executionpolicy')
+      set $policy$ = takeString(-1,$policylist$)	  
+	  Registry_SaveExecPolVal /32bit
+   endif 
 
    if FileExists("%ScriptPath%\delsub.opsiscript")
       comment "Start uninstall sub section"
@@ -175,6 +189,14 @@ endif
 ; ----------------------------------------------------------------
 ; install section
 ; ----------------------------------------------------------------
+[Registry_SaveFirstRunFlag]
+openKey [$WinstRegKey$]
+set "FirstRunFlag" = "$FirstRunFlag$"
+
+[Registry_SaveExecPolVal]
+openKey [$WinstRegKey$]
+set "InitialExecPol" = "$policy$"
+
 [DOSInAnIcon_catscript]
 echo %1 %2 %3 %4 %5 %6 %7 %8 %9 >> $InstallDir$\$CreateScript$
 
