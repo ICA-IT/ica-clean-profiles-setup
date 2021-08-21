@@ -7,7 +7,7 @@ type: localboot
 id: ica-clean-profiles-setup
 name: ica-clean-profiles-setup
 description: Install the setup files for cleaning student account profiles.
-advice: The powershell script will be generated using the cleanprofiles program.
+advice: The powershell script will be generated using the cleanprofiles program. A shortcut will be saved on the Public Desktop. Execute the shortcut using a privileged domain account. When done, uninstall this procuct to clean up files.
 version: 1.1
 priority: 0
 licenseRequired: False
