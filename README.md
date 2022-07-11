@@ -4,7 +4,8 @@ Install the setup files for cleaning student account profiles.
 The powershell script will be generated using the cleanprofiles program.
 
 For help in running this script, see the advice comment in opsi-configd
-or:
+
+or see the following:
 
 A powershell script will be generated int the c:\temp folder on the client machine and a shortcut will be saved on the Public Desktop.
 
