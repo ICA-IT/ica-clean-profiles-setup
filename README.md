@@ -13,6 +13,8 @@ Execute the shortcut using a privileged domain account. When done, uninstall thi
 
 When the shortcut is executed, a cleaning scripts will be saved in the specified folder on the server.
 
+Note: This script expects the WIDECHAR compile option to NOT be set when compileing cleanprofiles.c. I.e, it expects the input to the second stage to be a 8 bit ascii file. If you desire to use the WIDECHAR option, delete the conversion from wide to 8 bit from this script.
+
  Note: For help depolying the cleaning script using opsi, see:
  
        git@github.com:ICA-IT/ica-clean-profiles.git
